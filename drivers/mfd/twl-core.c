@@ -1189,6 +1189,18 @@ twl_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		WARN(status < 0, "Error: reading twl_idcode register value\n");
 	}
 
+	if (twl_class_is_6030()) {
+		int err;
+
+		err = twl_i2c_write_u8(TWL_MODULE_PM_RECEIVER,
+				TWL6030_GRP_CON << TWL6030_CFG_STATE_GRP_SHIFT |
+				TWL6030_CFG_STATE_ON,
+				TWL6030_PM_RECEIVER_CLK32KG_CFG_STATE);
+		if (err) {
+			pr_err("TWL6030 Unable to enable CLK32KG -%d\n", err);
+		}
+	}
+
 	/* Maybe init the T2 Interrupt subsystem */
 	if (client->irq) {
 		if (twl_class_is_4030()) {
