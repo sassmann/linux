@@ -412,7 +412,7 @@ void _rtl92ce_phy_lc_calibrate(struct ieee80211_hw *hw, bool is2t)
 
 	rtl_set_rfreg(hw, RF90_PATH_A, 0x18, MASK12BITS, lc_cal | 0x08000);
 
-	mdelay(100);
+	mdelay(20);
 
 	if ((tmpreg & 0x70) != 0) {
 		rtl_write_byte(rtlpriv, 0xd03, tmpreg);
