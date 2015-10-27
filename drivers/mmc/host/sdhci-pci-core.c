@@ -67,7 +67,7 @@ static int ricoh_mmc_resume(struct sdhci_pci_chip *chip)
 	/* Apply a delay to allow controller to settle */
 	/* Otherwise it becomes confused if card state changed
 		during suspend */
-	msleep(500);
+	msleep(30);
 	return 0;
 }
 
