@@ -933,7 +933,7 @@ int xhci_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 				xhci_set_link_state(xhci, port_array, wIndex,
 							XDEV_U0);
 				spin_unlock_irqrestore(&xhci->lock, flags);
-				msleep(10);
+				usleep_range(10000,12000);
 				spin_lock_irqsave(&xhci->lock, flags);
 			}
 			/* In spec software should not attempt to suspend
@@ -962,7 +962,7 @@ int xhci_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			xhci_set_link_state(xhci, port_array, wIndex, XDEV_U3);
 
 			spin_unlock_irqrestore(&xhci->lock, flags);
-			msleep(10); /* wait device to enter */
+			usleep_range(10000,12000); /* wait device to enter */
 			spin_lock_irqsave(&xhci->lock, flags);
 
 			temp = readl(port_array[wIndex]);
@@ -1323,7 +1323,7 @@ int xhci_bus_resume(struct usb_hcd *hcd)
 	bus_state = &xhci->bus_state[hcd_index(hcd)];
 
 	if (time_before(jiffies, bus_state->next_statechange))
-		msleep(5);
+		usleep_range(5000,7000);
 
 	spin_lock_irqsave(&xhci->lock, flags);
 	if (!HCD_HW_ACCESSIBLE(hcd)) {
