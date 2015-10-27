@@ -3274,15 +3274,82 @@ static int sd_suspend_runtime(struct device *dev)
 	return sd_suspend_common(dev, false);
 }
 
+static void sd_resume_complete(struct request *rq, int error)
+{
+	struct scsi_sense_hdr sshdr;
+	struct scsi_disk *sdkp = rq->end_io_data;
+	char *sense = rq->sense;
+
+	if (error) {
+		sd_printk(KERN_WARNING, sdkp, "START FAILED\n");
+		if (sense && (driver_byte(error) & DRIVER_SENSE)) {
+			scsi_normalize_sense(sense,
+				SCSI_SENSE_BUFFERSIZE, &sshdr);
+			sd_print_sense_hdr(sdkp, &sshdr);
+		}
+	} else {
+		sd_printk(KERN_NOTICE, sdkp, "START SUCCESS\n");
+	}
+
+	kfree(sense);
+	rq->sense = NULL;
+	rq->end_io_data = NULL;
+	__blk_put_request(rq->q, rq);
+}
+
 static int sd_resume(struct device *dev)
 {
+	unsigned char cmd[6] = { START_STOP };
 	struct scsi_disk *sdkp = dev_get_drvdata(dev);
+	struct request *req;
+	char *sense = NULL;
+	int ret = 0;
 
 	if (!sdkp->device->manage_start_stop)
-		return 0;
+		goto error;
 
 	sd_printk(KERN_NOTICE, sdkp, "Starting disk\n");
-	return sd_start_stop_device(sdkp, 1);
+	cmd[4] |= 1;
+
+	if (sdkp->device->start_stop_pwr_cond)
+		cmd[4] |= 1 << 4;	/* Active or Standby */
+
+	if (!scsi_device_online(sdkp->device)) {
+		ret = -ENODEV;
+		goto error;
+	}
+
+	req = blk_get_request(sdkp->device->request_queue, 0, __GFP_RECLAIM);
+	if (!req) {
+		ret = -ENOMEM;
+		goto error;
+	}
+
+	sense = kzalloc(SCSI_SENSE_BUFFERSIZE, GFP_NOIO);
+	if (!sense) {
+		ret = -ENOMEM;
+		goto error_sense;
+	}
+
+	req->cmd_len = COMMAND_SIZE(cmd[0]);
+	memcpy(req->cmd, cmd, req->cmd_len);
+	req->sense = sense;
+	req->sense_len = 0;
+	req->retries = SD_MAX_RETRIES;
+	req->timeout = SD_TIMEOUT;
+	req->cmd_type = REQ_TYPE_BLOCK_PC;
+	req->cmd_flags |= REQ_PM | REQ_QUIET | REQ_PREEMPT;
+
+	req->end_io_data = sdkp;
+	blk_execute_rq_nowait(req->q, NULL, req, 1, sd_resume_complete);
+	scsi_disk_put(sdkp);
+	return 0;
+
+ error_sense:
+	__blk_put_request(req->q, req);
+ error:
+	scsi_disk_put(sdkp);
+	return ret;
 }
 
 /**
