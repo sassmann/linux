@@ -1115,8 +1115,8 @@ int ehci_resume(struct usb_hcd *hcd, bool force_reset)
 {
 	struct ehci_hcd		*ehci = hcd_to_ehci(hcd);
 
-	if (time_before(jiffies, ehci->next_statechange))
-		msleep(100);
+	while (time_before(jiffies, ehci->next_statechange))
+		usleep_range(1000,2000);
 
 	/* Mark hardware accessible again as we are back to full power by now */
 	set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
