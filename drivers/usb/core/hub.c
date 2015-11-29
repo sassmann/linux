@@ -2817,7 +2817,7 @@ static int hub_port_reset(struct usb_hub *hub, int port1,
 done:
 	if (status == 0) {
 		/* TRSTRCY = 10 ms; plus some extra */
-		msleep(10 + 40);
+		msleep(10 + 10);
 		if (udev) {
 			struct usb_hcd *hcd = bus_to_hcd(udev->bus);
 
