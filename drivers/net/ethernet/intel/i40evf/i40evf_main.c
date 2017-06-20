@@ -934,9 +934,6 @@ static int i40evf_set_mac(struct net_device *netdev, void *p)
 	if (ether_addr_equal(netdev->dev_addr, addr->sa_data))
 		return 0;
 
-	if (adapter->flags & I40EVF_FLAG_ADDR_SET_BY_PF)
-		return -EPERM;
-
 	f = i40evf_find_filter(adapter, hw->mac.addr);
 	if (f) {
 		f->remove = true;
@@ -2624,7 +2621,6 @@ static void i40evf_init_task(struct work_struct *work)
 		eth_hw_addr_random(netdev);
 		ether_addr_copy(adapter->hw.mac.addr, netdev->dev_addr);
 	} else {
-		adapter->flags |= I40EVF_FLAG_ADDR_SET_BY_PF;
 		ether_addr_copy(netdev->dev_addr, adapter->hw.mac.addr);
 		ether_addr_copy(netdev->perm_addr, adapter->hw.mac.addr);
 	}
